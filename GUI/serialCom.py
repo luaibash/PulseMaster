@@ -2,6 +2,7 @@ from tkinter import messagebox
 import serial
 import serial.tools.list_ports
 import struct
+import time
 
 # Class for all serial communication functionalities
 class SerialCom:
@@ -95,6 +96,10 @@ class SerialCom:
     def packParameters(self, user, mode, egram=False):
         packet = []
 
+        # Establish serial connection and write to board
+        COM = self.deviceIdentifier(needCom=True)
+        ser = serial.Serial(COM, 115200)
+
         b0 = b'\x00'                                            # Parity bit
         b1 = b'\x01' if egram else b'\x00'                      # Serial mode. 0 for run mode, 1 for egram mode
         b2 = struct.pack('B', user['MODE'])                     # Mode being used
@@ -149,11 +154,13 @@ class SerialCom:
         packet.append(b22)
         packet.append(b23)
         packet.append(b24)
+        
 
-        return packet, sum
-    
-    # Sum all of the values written to the pacemaker and received back
-    def readPacemakerData(self, ser, egram=False):
+        #packet= self.packParameters(user, mode, ser)
+        #return packet, sum
+        ser.write(b''.join(packet))
+    # # Sum all of the values written to the pacemaker and received back
+    # def readPacemakerData(self, ser, egram=False):
 
         MODE = struct.unpack("B", ser.read(1))[0]
         LRL = struct.unpack("H", ser.read(2))[0]
@@ -181,43 +188,54 @@ class SerialCom:
         ATR_SIGNAL = struct.unpack("d", ser.read(8))[0]
         VENT_SIGNAL = struct.unpack("d", ser.read(8))[0]
 
-        if egram:
-            return [ATR_SIGNAL, VENT_SIGNAL]
-        else:
-            sum = MODE + LRL + URL + REACT + RESPF + W_THRESH + J_THRESH + R_THRESH + RECOVT + W_MSR + J_MSR + R_MSR + W_HYST + J_HYST + R_HYST + AA + APW + ARP + AS + VA + VPW + VRP + VS
-            return sum
-    
-    def writeToPacemaker(self, user, mode):
-        # Pack values
-        packet, writeSum = self.packParameters(user, mode)
-        COM = self.deviceIdentifier(needCom=True)
+        sum2 = MODE + LRL + URL + REACT + RESPF + W_THRESH + J_THRESH + R_THRESH + RECOVT + W_MSR + J_MSR + R_MSR + W_HYST + J_HYST + R_HYST + AA + APW + ARP + AS + VA + VPW + VRP + VS
 
-        # Establish serial connection and write to board
-        ser = serial.Serial(COM, 115200)
-        ser.write(b''.join(packet))
-        print('Data has been written: ', packet)
-
-        # Recieve values from board and check if it was transmitted correctly
-        readSum = self.readPacemakerData(ser)
 
         # Notify user whether the data has been written successfully or not
-        if readSum == writeSum:
-            messagebox.showinfo("Run Successful", f"{mode} is now running on the pacemaker.", parent=self.box)
+        # if sum == sum2:
+        #     messagebox.showinfo("Run Successful", f"{mode} is now running on the pacemaker.", parent=self.box)
+        # else:
+        #     messagebox.showinfo("Error Write", "There was an error writing the parameters to the pacemaker.", parent=self.box) 
+
+        ser.close()
+
+        if egram:
+            return [ATR_SIGNAL, VENT_SIGNAL]
+        # return a list of all other params except for atr_signal and vent_signal
         else:
-            messagebox.showinfo("Error Write", "There was an error writing the parameters to the pacemaker.", parent=self.box) 
+            return [MODE, LRL, URL, REACT, RESPF, W_THRESH, J_THRESH, R_THRESH, RECOVT, W_MSR, J_MSR, R_MSR, W_HYST, J_HYST, R_HYST, AA, APW, ARP, AS, VA, VPW, VRP, VS]
+    
+    # def writeToPacemaker(self, user, mode):
+    #     # Pack values
+    #     # Establish serial connection and write to board
+    #     ser = serial.Serial(COM, 115200)
+        
+        
+    #     COM = self.deviceIdentifier(needCom=True)
+
+        
+    #     #print('Data has been written: ', packet)
+
+    #     # time_start = time.time()
+
+    #     # ser.read(100)
+
+    #     # print('Time taken to read: ', time.time() - time_start)
+    #     # Recieve values from board and check if it was transmitted correctly
+    #     #readSum = self.readPacemakerData(ser)
+
 
     def receiveEgramData(self, user, mode):
         # Pack values
-        packet, sum = self.packParameters(user, mode, egram=True)
-        COM = self.deviceIdentifier(needCom=True)
-
-        # Establish serial connection and write to board
-        ser = serial.Serial(COM, 115200)
-        ser.write(b''.join(packet))
-        data = self.readPacemakerData(ser, egram=True)
-        # ser.close()
         
-        return data
+        packet = self.packParameters(user, mode, egram=True)
+        
+
+        
+        #ser.write(b''.join(packet))
+        #data = self.readPacemakerData(ser, egram=True)
+        
+        return packet
 
 
 

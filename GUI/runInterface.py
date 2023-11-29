@@ -182,7 +182,7 @@ class RunInterface:
                 return
             
             # Write programmable parameters to the board
-            self.serialCom.writeToPacemaker(self.currentUser[mode], mode)
+            self.serialCom.packParameters(self.currentUser[mode], mode)
 
         runButton = tk.Button(runFrame, text="Run mode", command=runPacemaker, font=self.subtextFont, padx=40, pady=3)
         runButton.pack(side="bottom", padx=5, pady=5)
